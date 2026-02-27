@@ -5,12 +5,11 @@ Extracted from flashinfer/testing/utils.py — contains only the CUPTI profiling
 path with no CUDA-event or CUDA-graph fallback code.
 
 Requirements:
-    pip install cupti-python>=13.0.0   (needs CUDA 13+)
-    pip install torch numpy
+    pip install cupti-perf
 
 Usage:
     import torch
-    from cupti_bench import bench_gpu_time
+    from cupti_perf import bench_gpu_time
 
     # Simplest form — pass a zero-arg callable
     a = torch.randn(4096, 4096, device="cuda")

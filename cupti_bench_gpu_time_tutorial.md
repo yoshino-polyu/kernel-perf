@@ -98,9 +98,56 @@ The post-processing uses this to attribute GPU kernels to specific benchmark ite
 
 ### L2 Cache Flush
 
+#### Why `buffer.zero_()` flushes L2 — even though it's unrelated to the profiled kernel
+
+The GPU has a single, shared L2 cache sitting between all SMs and device DRAM.
+Every GPU memory access — from *any* kernel — goes through this same L2. The
+cache has a fixed capacity (e.g. 50 MiB on H100) and a replacement policy: when
+new data arrives and the cache is full, the oldest/least-recently-used lines are
+evicted.
+
+`buffer.zero_()` launches a GPU-side memset kernel that writes to `2 × L2_cache_size`
+bytes of device memory. Because the write footprint exceeds the entire L2 capacity,
+every cache line in L2 gets replaced with flush-buffer data by the time the memset
+finishes. After this point, none of the profiled kernel's input or output data
+remains in L2 — the next call to `fn()` starts with an all-miss ("cold") L2
+cache and must fetch everything from DRAM.
+
+The flush is intentionally **unrelated** to the profiled kernel: the goal is to
+pollute L2 with irrelevant data so that the kernel's own data is guaranteed to be
+evicted. It does not matter what the flush buffer contains — only that the write
+is large enough to cycle through all L2 lines.
+
+```
+Before flush:
+  L2 cache: [kernel input A] [kernel output B] [other data ...]
+                                                     ← L2 capacity →
+
+buffer.zero_()  writes 2× L2 capacity of zeros:
+  L2 cache: [flush buf page N] [flush buf page N+1] [flush buf ...]
+                                                     ← L2 capacity →
+
+Next fn() call:
+  Every load/store → L2 miss → fetch from DRAM
+```
+
+Concretely, the implementation is:
+
+```python
+flush_buffer = torch.empty(l2_bytes * 2, device=device, dtype=torch.int8)
+# ...
+for _ in range(repeat_iters):
+    flush_buffer.zero_()          # GPU memset — evicts all L2 lines
+    # ... then measure fn() ...
+```
+
+The flush runs on the same CUDA stream before `fn()`, so it is guaranteed to
+complete before the profiled kernel starts. CUPTI timestamps bracket `fn()` after
+the flush, so the memset time is **not** included in the reported kernel time.
+
 When `cold_l2_cache=True`:
-- A `torch.int8` buffer of size `2 × L2_cache_size` is allocated
-- Before each iteration, `buffer.zero_()` writes zeros to the entire buffer, evicting kernel data from L2
+- A `torch.int8` buffer of size `2 × L2_cache_size` is allocated once
+- Before each iteration, `buffer.zero_()` writes zeros to the entire buffer on GPU, evicting all prior L2 contents
 - The CUPTI path uses this L2-flush strategy (not rotating buffers, which is the CUDA-graph-only strategy)
 
 #### Pros of `cold_l2_cache=True`

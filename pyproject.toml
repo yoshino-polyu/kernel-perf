@@ -1,0 +1,14 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cupti-perf"
+version = "0.1.0"
+description = "CUPTI-based GPU kernel benchmarking utility"
+requires-python = ">=3.8"
+dependencies = [
+    "cupti-python>=13.0.0",
+    "torch",
+    "numpy",
+]
