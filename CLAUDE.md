@@ -17,6 +17,7 @@ Single package: `cupti_perf/` (public API: `bench_gpu_time()`). Tutorial docs in
 ## Install & Run
 
 ```bash
+pip install cupti-python>=13.0.0
 pip install -e .
 ```
 
