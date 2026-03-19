@@ -4,6 +4,9 @@ Standalone CUPTI GPU kernel benchmarking utility.
 Extracted from flashinfer/testing/utils.py — contains only the CUPTI profiling
 path with no CUDA-event or CUDA-graph fallback code.
 
+Also includes tensor dumper/loader tools (adapted from SGLang's debug_utils)
+for capturing and replaying kernel inputs in performance unit tests.
+
 Requirements:
     pip install cupti-perf
 
@@ -30,6 +33,15 @@ Usage:
         dry_run_time_ms=25,      # target warmup duration
         repeat_iters=20,         # num of measured iterations
     )
+
+    # Dump kernel inputs for later replay
+    from cupti_perf import TensorDumper, TensorLoader
+
+    dumper = TensorDumper("/tmp/kernel_dumps")
+    dumper.dump_kernel_inputs("my_kernel", args={"x": a, "w": b})
+
+    loader = TensorLoader("/tmp/kernel_dumps")
+    inputs = loader.load_kernel_inputs(loader.list_dumps()[0].name, device="cuda")
 
 """
 
@@ -350,3 +362,21 @@ def bench_gpu_time(
         measured_times.append(span_ms)
 
     return measured_times
+
+
+# ---------------------------------------------------------------------------
+# Re-export tensor dumper/loader for convenience
+# ---------------------------------------------------------------------------
+from cupti_perf.tensor_dumper import TensorDumper, TensorMeta, KernelDumpManifest
+from cupti_perf.tensor_loader import TensorLoader, LoadedKernelInputs, DumpEntry
+
+__all__ = [
+    "bench_gpu_time",
+    "get_l2_cache_size",
+    "TensorDumper",
+    "TensorMeta",
+    "KernelDumpManifest",
+    "TensorLoader",
+    "LoadedKernelInputs",
+    "DumpEntry",
+]
