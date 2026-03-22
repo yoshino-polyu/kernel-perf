@@ -26,8 +26,8 @@ Tutorial docs:
 ## Install & Run
 
 ```bash
-pip install cupti-python>=13.0.0
-pip install -e .
+python -m pip install cupti-python>=13.0.0
+python -m pip install -e .
 ```
 
 ```python
