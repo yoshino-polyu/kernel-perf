@@ -19,14 +19,14 @@ Tutorial docs:
 
 ## Dependencies
 
-- `cupti-python >= 13.0.0` (requires CUDA 13+)
+- `cupti-python == 13.0.1` (compatible with torch 2.10.0+cu130, no dependency conflicts)
 - `torch` (PyTorch with CUDA)
 - `numpy`
 
 ## Install & Run
 
 ```bash
-python -m pip install cupti-python>=13.0.0
+python -m pip install "cupti-python==13.0.1"
 python -m pip install -e .
 ```
 
