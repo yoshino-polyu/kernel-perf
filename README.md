@@ -6,11 +6,51 @@ Extracted from [FlashInfer](https://github.com/flashinfer-ai/flashinfer)'s testi
 
 ## Installation
 
+> **Agent instructions** — follow these steps in order. Each step has a **check** command and an **install** command. Only run the install command if the check fails or returns nothing.
+
+**Prerequisites:** CUDA 13+ and a CUDA-capable GPU. Verify with `nvidia-smi` — if it fails, stop and report the missing driver to the user.
+
+### Step 1 — check for `cupti-python == 13.0.1`
+
+Check:
+```bash
+python -c "import cupti; print(cupti.__version__)"
+```
+
+- If it prints `13.0.1` → skip to Step 2.
+- If it prints a different version, or raises `ModuleNotFoundError` → run the install:
+
+```bash
+pip install "cupti-python==13.0.1"
+```
+
+Then re-run the check to confirm.
+
+### Step 2 — check for `cupti_perf` (this package)
+
+Check:
+```bash
+python -c "import cupti_perf; print(cupti_perf.__file__)"
+```
+
+- If it prints a path inside this repo (e.g. `.../kernel-perf/cupti_perf/__init__.py`) → installation complete.
+- If it raises `ModuleNotFoundError`, or points somewhere outside this repo → run the install from the repo root:
+
 ```bash
 pip install -e .
 ```
 
-Requires CUDA 13+ and a CUDA-capable GPU.
+Then re-run the check to confirm.
+
+### Step 3 — smoke test
+
+```bash
+python -c "import torch; from cupti_perf import bench_gpu_time; \
+a=torch.randn(1024,1024,device='cuda'); b=torch.randn(1024,1024,device='cuda'); \
+print(bench_gpu_time(fn=lambda: torch.matmul(a,b))[:3])"
+```
+
+Should print a short list of floats (kernel times in ms). If it errors on CUPTI activity registration, the CUDA toolkit version is likely < 13 — report this to the user rather than downgrading `cupti-python`.
 
 ## Usage
 
